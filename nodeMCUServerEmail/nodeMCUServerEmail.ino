@@ -23,12 +23,12 @@ Incluir biblioteca DHT, Time, Blynk e esp8266WiFi.
 #include <Time.h>
 #include <TimeAlarms.h>
 // chave do thingspeak
-String apiKey = "seu token thingspeak";  // a chave se encontra no site www.thingspeak.com
+String apiKey = "";  // a chave se encontra no site www.thingspeak.com
 // chave do Blynk   
-char auth[] = "seu token blynk"; // a chave se encontra no APP Blynk mais informações www.blynk.io
+char auth[] = ""; // a chave se encontra no APP Blynk mais informações www.blynk.io
 // conecta ao wifi
-const char *ssid =  "seu ssid";     //caso precise alterar a rede coloque aqui o nome da rede SSID
-const char *pass =  "senha ssid";    //caso precise alterar a rede coloque aqui a senha da rede
+const char *ssid =  "ssid";     //caso precise alterar a rede coloque aqui o nome da rede SSID
+const char *pass =  "password";    //caso precise alterar a rede coloque aqui a senha da rede
 // conecta ao servidor thingspeak
 const char* server = "api.thingspeak.com";
 // define o pino do sensor DHT
@@ -38,15 +38,31 @@ DHT dht(DHTPIN, DHT22);
 BlynkTimer timer;
 WiFiClient client;
 
+
+void setup() 
+{
+    // inicia as portas serial1 e serial
+       Serial1.begin(9200);
+       Serial.begin(115200);
+       delay(50);
+       dht.begin(); //inicia o sensor
+       Serial.println("Connecting to "); // conecta a rede wifi  na porta serial
+       Serial.println(ssid); 
+     
+         Blynk.begin(auth ,ssid, pass); // conecta o blynk a rede wifi 
+      Serial.println("Connecting to blynk");
+      Serial.println("");
+      Serial.println("WiFi connected");
+}
 void contador(){
 
     Serial.println("iniciando contador");
       delay(1200000); // contador de 20 minutos em ms
      Serial.println("aguardou 20 minuto "); 
-     sends();
+     setup();
    }
 void sends(){
-  
+      
       Blynk.run();// inicia o blynk
       timer.run(); // inicia o timer
       float h = dht.readHumidity(); // leitura da humidade
@@ -84,7 +100,7 @@ void sends(){
                              Serial.print(" degrees Celcius, Humidity: ");
                              Serial.print(h);
                              Serial.println("%. Send to Thingspeak.");
-                          }
+                          
                            if(t >= maxtemp){ // envia a temperatura para o thingspeak e email caso a temperatura for acima de 25 graus
                                delay(50);
                                   client.connect(server,80);
@@ -104,31 +120,14 @@ void sends(){
                                   client.print("\n\n");
                                   client.print(postStr);
                                   Serial.println("%. Send to email.");  
-                                  Blynk.email("email@email.com.br", "Alerta! SALA DE SERVIDOR  - TEMPERATURA ALTA! ", "Favor alertar aos gestores que a temperatura da sala chegou a 25 Graus Celcius.");
+                                  Blynk.email("seuemail@mail.com", "Alerta! SALA DE SERVIDOR  - TEMPERATURA ALTA! ", "Favor alertar aos gestores que a temperatura da sala chegou a 25 Graus Celcius.");
                                //   timer.setInterval(120000L, contador);
                                   contador();
-                                   delay(50);
+                                   delay(50);}
                              }//endif            
 }//endsend
-void setup() 
-{
-    // inicia as portas serial1 e serial
-       Serial1.begin(9200);
-       Serial.begin(115200);
-       delay(50);
-       dht.begin(); //inicia o sensor
-       Serial.println("Connecting to "); // conecta a rede wifi  na porta serial
-       Serial.println(ssid); 
-     
-         Blynk.begin(auth ,ssid, pass); // conecta o blynk a rede wifi 
-      Serial.println("Connecting to blynk");
-      Serial.println("");
-      Serial.println("WiFi connected");
-}
 void loop() 
 {
   sends();
   delay(1000);
 }
-
-
