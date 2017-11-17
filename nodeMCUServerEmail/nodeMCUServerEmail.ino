@@ -23,12 +23,12 @@ Incluir biblioteca DHT, Time, Blynk e esp8266WiFi.
 #include <Time.h>
 #include <TimeAlarms.h>
 // chave do thingspeak
-String apiKey = "M0BGHS40J5OZ98D8";  // a chave se encontra no site www.thingspeak.com
+String apiKey = "seu token thingspeak";  // a chave se encontra no site www.thingspeak.com
 // chave do Blynk   
-char auth[] = "c5ee4df988de4e24aaaf0b6f295cffec"; // a chave se encontra no APP Blynk mais informações www.blynk.io
+char auth[] = "seu token blynk"; // a chave se encontra no APP Blynk mais informações www.blynk.io
 // conecta ao wifi
-const char *ssid =  "Skafe-Guest";     //caso precise alterar a rede coloque aqui o nome da rede SSID
-const char *pass =  "Skafe2016";    //caso precise alterar a rede coloque aqui a senha da rede
+const char *ssid =  "seu ssid";     //caso precise alterar a rede coloque aqui o nome da rede SSID
+const char *pass =  "senha ssid";    //caso precise alterar a rede coloque aqui a senha da rede
 // conecta ao servidor thingspeak
 const char* server = "api.thingspeak.com";
 // define o pino do sensor DHT
@@ -41,34 +41,19 @@ WiFiClient client;
 void contador(){
 
     Serial.println("iniciando contador");
-      delay(300000); // contador de 5 minutos em ms
-     Serial.println("aguardou 5 minuto "); 
-     loop();
+      delay(1200000); // contador de 20 minutos em ms
+     Serial.println("aguardou 20 minuto "); 
+     sends();
    }
-
-void setup() 
-{
-    // inicia as portas serial1 e serial
-       Serial1.begin(9200);
-       Serial.begin(115200);
-       delay(10);
-       dht.begin(); //inicia o sensor
-       Serial.println("Connecting to "); // conecta a rede wifi  na porta serial
-       Serial.println(ssid); 
-     
-         Blynk.begin(auth ,ssid, pass); // conecta o blynk a rede wifi 
-
-      Serial.println("");
-      Serial.println("WiFi connected");
-}
-void loop() 
-{
-     Blynk.run();// inicia o blynk
-     timer.run(); // inicia o timer
+void sends(){
+  
+      Blynk.run();// inicia o blynk
+      timer.run(); // inicia o timer
       float h = dht.readHumidity(); // leitura da humidade
       float t = dht.readTemperature(); // leitura da temperatura 
       float maxtemp = 25;                     // temperatura maxima      
-              if (isnan(h) || isnan(t)) 
+              delay(50);
+                if (isnan(h) || isnan(t)) 
                  {
                      Serial.println("Failed toy read from DHT sensor!");
                       return;
@@ -76,6 +61,7 @@ void loop()
                          if (client.connect(server,80))                                                  
                       {  
               // envia a temperatura e humidade para o thingspeak...
+                             delay(50);
                              String postStr = apiKey;
                              postStr +="&field1="; 
                              postStr += String(t);
@@ -98,19 +84,51 @@ void loop()
                              Serial.print(" degrees Celcius, Humidity: ");
                              Serial.print(h);
                              Serial.println("%. Send to Thingspeak.");
-
-                        }
-       
-          client.stop();
-          Serial.println("Waiting...");
-      // envia e-mail caso a temperatura for maior ou igual a maxtemp.
-          if (t >= maxtemp){
-                              Serial.println("%. Send to email.");  
-                               Blynk.email("ti@skafe.com.br", "Alerta! SALA DE SERVIDOR  - TEMPERATURA ALTA! ", "Favor alertar aos gestores que a temperatura da sala chegou a 25 Graus Celcius.");
-                               timer.setInterval(10000L, contador); // aguarda 10 segundos e vai pra void contador aguardando os 5 minutos.
-                              }
-  delay(10000);
+                          }
+                           if(t >= maxtemp){ // envia a temperatura para o thingspeak e email caso a temperatura for acima de 25 graus
+                               delay(50);
+                                  client.connect(server,80);
+                                  String postStr = apiKey;
+                                    postStr +="&field1="; 
+                                    postStr += String(t);
+                                    postStr +="&field2=";
+                                    postStr += String(h);
+                                    postStr += "\r\n\r\n";
+                                  client.print("POST /update HTTP/1.1\n");
+                                  client.print("Host: api.thingspeak.com\n");
+                                  client.print("Connection: close\n");
+                                  client.print("X-THINGSPEAKAPIKEY: "+apiKey+"\n");
+                                  client.print("Content-Type: application/x-www-form-urlencoded\n");
+                                  client.print("Content-Length: ");
+                                  client.print(postStr.length());
+                                  client.print("\n\n");
+                                  client.print(postStr);
+                                  Serial.println("%. Send to email.");  
+                                  Blynk.email("email@email.com.br", "Alerta! SALA DE SERVIDOR  - TEMPERATURA ALTA! ", "Favor alertar aos gestores que a temperatura da sala chegou a 25 Graus Celcius.");
+                               //   timer.setInterval(120000L, contador);
+                                  contador();
+                                   delay(50);
+                             }//endif            
+}//endsend
+void setup() 
+{
+    // inicia as portas serial1 e serial
+       Serial1.begin(9200);
+       Serial.begin(115200);
+       delay(50);
+       dht.begin(); //inicia o sensor
+       Serial.println("Connecting to "); // conecta a rede wifi  na porta serial
+       Serial.println(ssid); 
+     
+         Blynk.begin(auth ,ssid, pass); // conecta o blynk a rede wifi 
+      Serial.println("Connecting to blynk");
+      Serial.println("");
+      Serial.println("WiFi connected");
 }
-
+void loop() 
+{
+  sends();
+  delay(1000);
+}
 
 
